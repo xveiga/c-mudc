@@ -1,0 +1,10 @@
+# Library sources
+gen-libs/tar/
+gen-libs/src/
+
+# Library builds
+libs/
+
+# Binaries
+check-versions
+moodle-curl
