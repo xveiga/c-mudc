@@ -425,7 +425,7 @@ int create_folders(CURL *curl, struct moodle_course_data *courses) {
 	char basedir[FILENAME_MAX];
 	char coursedir[FILENAME_MAX];
 	char categorydir[FILENAME_MAX];
-	//char moduledir[FILENAME_MAX];
+	char moduledir[FILENAME_MAX];
 
 	// Create base directory
 	printf("Creating directories...\n");
@@ -455,11 +455,11 @@ int create_folders(CURL *curl, struct moodle_course_data *courses) {
 			// For each module
 			for (k = 0; k < category->mod_len; k++) {
 				module = &category->modules[k];
-				/*strcpy(moduledir, categorydir);
+				strcpy(moduledir, categorydir);
 				strcat(moduledir, "/");
 				strcpy(tempbuf, module->name);
 				sanitize_path(tempbuf);
-				strcat(moduledir, tempbuf);*/
+				strcat(moduledir, tempbuf);
 				// For each element
 				for(l = 0; l < module->el_len; l++) {
 					element = &module->elements[l];
@@ -469,8 +469,8 @@ int create_folders(CURL *curl, struct moodle_course_data *courses) {
 							return EXIT_FAILURE;
 						if (create_dir(categorydir))
 							return EXIT_FAILURE;
-						/*if (create_dir(moduledir))
-							return EXIT_FAILURE;*/
+						if (create_dir(moduledir))
+							return EXIT_FAILURE;
 					}
 				}
 			}
@@ -489,7 +489,7 @@ int save_files(CURL *curl, struct moodle_course_data *courses, char *token) {
 	char basedir[FILENAME_MAX];
 	char coursedir[FILENAME_MAX];
 	char categorydir[FILENAME_MAX];
-	//char moduledir[FILENAME_MAX];
+	char moduledir[FILENAME_MAX];
 	char filename[FILENAME_MAX];
 
 	// Create base directory
@@ -519,17 +519,17 @@ int save_files(CURL *curl, struct moodle_course_data *courses, char *token) {
 			// For each module
 			for (k = 0; k < category->mod_len; k++) {
 				module = &category->modules[k];
-				/*strcpy(moduledir, categorydir);
+				strcpy(moduledir, categorydir);
 				strcat(moduledir, "/");
 				strcpy(tempbuf, module->name);
 				sanitize_path(tempbuf);
-				strcat(moduledir, tempbuf);*/
+				strcat(moduledir, tempbuf);
 
 				// For each element
 				for(l = 0; l < module->el_len; l++) {
 					element = &module->elements[l];
 					if (element != NULL) {
-						strcpy(filename, categorydir);
+						strcpy(filename, moduledir);
 						strcat(filename, "/");
 						strcpy(tempbuf, element->filename);
 						sanitize_path(tempbuf);
