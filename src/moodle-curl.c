@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <curl/curl.h>
+#include <curl.h>
 #include <json.h>
 
 #ifdef _WIN32
@@ -144,6 +144,7 @@ int get_user_id(CURL *curl, char* token) {
 	int userid;
 
 	// Prepare request URL with token
+	printf("Retrieving user id...");
 	strcpy(urlstr, site_url);
   	strcat(urlstr, site_info_func);
 	strcat(urlstr, "&wstoken=");
@@ -157,6 +158,7 @@ int get_user_id(CURL *curl, char* token) {
 
 	// Parse json
 	userid = parse_user_id(s.ptr);
+	printf("%d\n", userid);
     free(s.ptr);
 	return userid;
 }
@@ -189,6 +191,7 @@ void get_user_courses(CURL *curl, struct moodle_course_data *courses, char* toke
 	char urlstr[160]; // The url is 155 chars long
 	int urlstrlen;
 
+	printf("Fetching course list...");
 	// Prepare request URL with token
 	strcpy(urlstr, site_url);
   	strcat(urlstr, course_list_func);
@@ -206,6 +209,7 @@ void get_user_courses(CURL *curl, struct moodle_course_data *courses, char* toke
 	// Parse json
 	parse_user_courses(courses, s.ptr);
     free(s.ptr);
+	printf("found %zu courses\n", courses->len);
 }
 
 void parse_course_files(struct moodle_course *course, char *res) {
@@ -299,7 +303,7 @@ void free_user_courses(struct moodle_course_data *courses) {
 		for (j = 0; j < course->cat_len; j++) {
 			category = &course->categories[j];
 
-			// For each module			
+			// For each module
 			for (k = 0; k < category->mod_len; k++) {
 				module = &category->modules[k];
 
@@ -332,7 +336,7 @@ void print_files(struct moodle_course_data *courses) {
 		for (j = 0; j < course->cat_len; j++) {
 			category = &course->categories[j];
 
-			// For each module			
+			// For each module
 			for (k = 0; k < category->mod_len; k++) {
 				module = &category->modules[k];
 				for(l = 0; l < module->el_len; l++) {
@@ -351,7 +355,9 @@ void get_course_data(CURL *curl, struct moodle_course_data *courses, char *token
 
 	courses->userid = get_user_id(curl, token);
 	get_user_courses(curl, courses, token);
+	printf("Retrieving course contents...\n");
 	for (i = 0; i < courses->len; i++) {
+		printf("%d/%zu\n", i, courses->len);
 		get_course_files(curl, &courses->courses[i], token);
 	}
 }
@@ -409,6 +415,70 @@ void download_file(CURL *curl, const char *filename, const char *fileurl) {
 	}
 }
 
+int create_folders(CURL *curl, struct moodle_course_data *courses) {
+	int i, j, k, l;
+	struct moodle_course   *course;
+	struct moodle_category *category;
+	struct moodle_module   *module;
+	struct moodle_element  *element;
+	char tempbuf[FILENAME_MAX];
+	char basedir[FILENAME_MAX];
+	char coursedir[FILENAME_MAX];
+	char categorydir[FILENAME_MAX];
+	//char moduledir[FILENAME_MAX];
+
+	// Create base directory
+	printf("Creating directories...\n");
+	get_cwd(basedir, FILENAME_MAX);
+	strcat(basedir, "/files");
+	if (create_dir(basedir))
+		return EXIT_FAILURE;
+
+	// For each course
+	for (i = 0; i < courses->len; i++) {
+		course = &courses->courses[i];
+		strcpy(coursedir, basedir);
+		strcat(coursedir, "/");
+		strcpy(tempbuf, course->idnumber);
+		sanitize_path(tempbuf);
+		strcat(coursedir, tempbuf);
+
+		// For each category
+		for (j = 0; j < course->cat_len; j++) {
+			category = &course->categories[j];
+			strcpy(categorydir, coursedir);
+			strcat(categorydir, "/");
+			strcpy(tempbuf, category->name);
+			sanitize_path(tempbuf);
+			strcat(categorydir, tempbuf);
+
+			// For each module
+			for (k = 0; k < category->mod_len; k++) {
+				module = &category->modules[k];
+				/*strcpy(moduledir, categorydir);
+				strcat(moduledir, "/");
+				strcpy(tempbuf, module->name);
+				sanitize_path(tempbuf);
+				strcat(moduledir, tempbuf);*/
+				// For each element
+				for(l = 0; l < module->el_len; l++) {
+					element = &module->elements[l];
+					if (element != NULL) {
+						// Create all subdirectories
+						if (create_dir(coursedir))
+							return EXIT_FAILURE;
+						if (create_dir(categorydir))
+							return EXIT_FAILURE;
+						/*if (create_dir(moduledir))
+							return EXIT_FAILURE;*/
+					}
+				}
+			}
+		}
+	}
+	return EXIT_SUCCESS;
+}
+
 int save_files(CURL *curl, struct moodle_course_data *courses, char *token) {
 	int i, j, k, l;
 	struct moodle_course   *course;
@@ -425,9 +495,7 @@ int save_files(CURL *curl, struct moodle_course_data *courses, char *token) {
 	// Create base directory
 	get_cwd(basedir, FILENAME_MAX);
 	strcat(basedir, "/files");
-	if (create_dir(basedir))
-		return EXIT_FAILURE;
-	printf("Saving files to: %s\n", basedir);
+	printf("Will start to download. Saving files to: %s\n", basedir);
 
 	// For each course
 	for (i = 0; i < courses->len; i++) {
@@ -438,8 +506,6 @@ int save_files(CURL *curl, struct moodle_course_data *courses, char *token) {
 		strcpy(tempbuf, course->idnumber);
 		sanitize_path(tempbuf);
 		strcat(coursedir, tempbuf);
-		if (create_dir(coursedir))
-			return EXIT_FAILURE;
 
 		// For each category
 		for (j = 0; j < course->cat_len; j++) {
@@ -449,19 +515,15 @@ int save_files(CURL *curl, struct moodle_course_data *courses, char *token) {
 			strcpy(tempbuf, category->name);
 			sanitize_path(tempbuf);
 			strcat(categorydir, tempbuf);
-			if (create_dir(categorydir))
-				return EXIT_FAILURE;
 
-			// For each module			
+			// For each module
 			for (k = 0; k < category->mod_len; k++) {
 				module = &category->modules[k];
 				/*strcpy(moduledir, categorydir);
 				strcat(moduledir, "/");
 				strcpy(tempbuf, module->name);
 				sanitize_path(tempbuf);
-				strcat(moduledir, tempbuf);
-				if (create_dir(moduledir))
-					return EXIT_FAILURE;*/
+				strcat(moduledir, tempbuf);*/
 
 				// For each element
 				for(l = 0; l < module->el_len; l++) {
@@ -492,6 +554,7 @@ int download_all(char *token) {
 
   if(curl) {
 	  get_course_data(curl, &data, token);
+	  create_folders(curl, &data);
 	  res = save_files(curl, &data, token);
 	  free_user_courses(&data);
   }

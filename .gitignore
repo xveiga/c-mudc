@@ -8,3 +8,6 @@ libs/
 # Binaries
 check-versions
 moodle-curl
+
+# Downloaded files
+files/

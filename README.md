@@ -32,6 +32,9 @@ or
 
 ### 2. Compile dependencies
 There are scripts provided to download and compile OpenSSl, cURL and c-json on the `gen-libs` directory.
+For them to work, the following dependencies are required:
+- autoconf
+- libtool
 
 To compile all in one go, run:
 `./gen-libs/build-all.sh`
@@ -46,6 +49,8 @@ Compilation will fail if the dependencies were not built properly.
 Two executables are generated, `moodle-curl` and `check-versions`.
 
 `check-versions` can be used to verify that you are linking with the compiled OpenSSL and cURL and not your system libraries.
+This can also be checked by running the command `ldd check-versions`. If the libraries are correctly linked, they should
+not appear in the output of the command.
 
 `moodle-curl` is the main program. It needs your access token as the first argument.
 Upon executing it, it will proceed to download all files for all courses for the owner of the token.

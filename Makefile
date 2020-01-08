@@ -3,7 +3,7 @@ CFLAGS = -Wall
 SRCDIR = src
 
 CFLAGS += -Ilibs/include/json-c -Ilibs/include/curl -Ilibs/include/openssl -Llibs/lib
-LDFLAGS += -Llibs/lib -ljson-c -l:libcurl.a -l:libssl.a -l:libcrypto.a -ldl
+LDFLAGS += -Llibs/lib -l:libjson-c.a -l:libcurl.a -l:libssl.a -l:libcrypto.a -ldl
 
 all: check-versions moodle-curl
 

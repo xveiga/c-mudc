@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 # Load configuration
 BASE_DIR="$( cd "$(dirname "$0")" ; pwd -P )" # Script location directory
